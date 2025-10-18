@@ -1,0 +1,9 @@
+{
+    "name": "Castify",
+    "version": "1",
+    "homeUrl": "https://velvet-tubal-sandie.ngrok-free.dev",
+    "iconUrl": "https://raw.githubusercontent.com/farcaster-samples/mini-app-starter/main/public/images/icon-1024x1024.png",
+    "description": "Turn videos into shareable Farcaster casts in one click.",
+    "primaryCategory": "utility",
+    "tags": ["video", "casting", "media", "web3"]
+  }
