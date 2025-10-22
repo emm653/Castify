@@ -1,16 +1,13 @@
 {
-<<<<<<< HEAD
+
   "name": "Castify",
   "version": "0.1.0",
-=======
-  "name": "castify-miniapp",
   "version": "1.0.0",
->>>>>>> 159c4c2e5e702c54e0a8daee914a79dd6322ce0e
   "type": "module",
   "private": false,
   "access": "public",
   "exports": {
-<<<<<<< HEAD
+
   ".": {
   "types": "./index.d.ts",
   "import": "./bin/init.js"
