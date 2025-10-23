@@ -19,13 +19,15 @@ export async function POST(request: NextRequest) {
         }
 
         // 2. Fetch the HTML content with a common User-Agent to bypass simple blocks
+      
         const response = await axios.get(videoUrl, { 
-            timeout: 8000, 
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; Farcaster/1.0; +https://www.farcaster.xyz)', 
-                'Accept': 'text/html',
-            }
-        }); 
+          timeout: 10000, 
+          headers: {
+              // This makes the request look like it's coming from a desktop browser, not a generic Vercel script
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          }
+      });
         
         const html = response.data;
         const $ = cheerio.load(html);
