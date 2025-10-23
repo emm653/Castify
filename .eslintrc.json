@@ -1,32 +1,24 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"],
+  "root": true,
+  "extends": ["next/core-web-vitals", "eslint:recommended"],
+  "parserOptions": {
+    "ecmaVersion": 2024,
+    "sourceType": "module"
+  },
   "rules": {
-    // Disable img warnings since you're using them intentionally in specific contexts
-    "@next/next/no-img-element": "off",
+    // Disable rule blocking require-style imports. Prefer replacing require() with import,
+    // but allow existing code while you migrate.
+    "@typescript-eslint/no-require-imports": "off",
 
-    // Allow @ts-ignore comments (though @ts-expect-error is preferred)
-    "@typescript-eslint/ban-ts-comment": "off",
-
-    // Allow explicit any types (sometimes necessary for dynamic imports and APIs)
-    "@typescript-eslint/no-explicit-any": "off",
-
-    // Allow unused variables that start with underscore
-    "@typescript-eslint/no-unused-vars": [
-      "warn",
-      {
-        "argsIgnorePattern": "^_",
-        "varsIgnorePattern": "^_",
-        "caughtErrorsIgnorePattern": "^_"
-      }
-    ],
-
-    // Make display name warnings instead of errors for dynamic components
-    "react/display-name": "warn",
-
-    // Allow module assignment for dynamic imports
-    "@next/next/no-assign-module-variable": "warn",
-
-    // Make exhaustive deps a warning instead of error for complex hooks
+    // Keep react-hooks/exhaustive-deps as a warning (helps catch missing deps but won't fail builds).
     "react-hooks/exhaustive-deps": "warn"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["*.ts", "*.tsx"],
+      "parser": "@typescript-eslint/parser",
+      "plugins": ["@typescript-eslint"],
+      "extends": ["plugin:@typescript-eslint/recommended"]
+    }
+  ]
 }
