@@ -151,7 +151,7 @@
       "types": "./index.d.ts",
       "import": "./bin/init.js"
     }
-  },
+
   "types": "./index.d.ts",
   "scripts": {
     "dev": "node scripts/dev.js",
