@@ -22,6 +22,7 @@ export function Providers({
   children: React.ReactNode;
 }) {
   return (
+     <SessionProvider>
       <WagmiProvider>
         <MiniAppProvider
           analyticsEnabled={ANALYTICS_ENABLED}
