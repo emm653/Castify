@@ -1,8 +1,8 @@
 // Inside src/app/api/generate-cast/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-const axios = require('axios');
-const cheerio = require('cheerio');
+import axios from 'axios';
+import * as cheerio from 'cheerio';
 // This function handles POST requests to your API endpoint
 export async function POST(request: NextRequest) {
     let videoUrl = ''; // Define the variable here for scoping
