@@ -34,7 +34,11 @@ export async function POST(request: NextRequest) {
 
         const videoTitle = $('meta[property="og:title"]').attr('content') || "Check out this great cast!";
         const videoImage = $('meta[property="og:image"]').attr('content');
-
+        if (videoImage && videoImage.startsWith('/')) {
+    // Prepend the Vercel domain if the image link is relative
+            const baseUrl = new URL(videoUrl).origin;
+            videoImage = baseUrl + videoImage;
+        }
         if (!videoImage) {
             // If the image is blocked or missing, we return a fallback error to the user.
             return NextResponse.json({ error: "Image data blocked or not found. Try a simpler site." }, { status: 422 });
