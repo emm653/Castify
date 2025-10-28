@@ -1,4 +1,9 @@
 {
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEwNzgzMTUsInR5cGUiOiJhdXRoIiwia2V5IjoiMHgzNDNFN0M5Q2Q0RGMxODZFNWM5NDk0NkY2MWRFY0M1RDRmRmQxMWRlIn0",
+    "payload": "eyJkb21haW4iOiJjYXN0aWZ5LXNpeC52ZXJjZWwuYXBwIn0",
+    "signature": "fh1bKiU3DeK1ZjlG+0/v1vBBabEtNZQnjqLVFBvXHzwdLwbN/RDTgy0DMYMv40jfpQAFUvCp6xIdQyM0kc5uMhw="
+  };
   "frame": {
     "name": "Castify",
     "version": "1",
@@ -21,10 +26,5 @@
     ],
     "heroImageUrl": "https://castify-six.vercel.app/image.png",
     "tagline": "Easiest way to share videos."
-  },
-  "accountAssociation": {
-    "header": "eyJmaWQiOjEwNzgzMTUsInR5cGUiOiJhdXRoIiwia2V5IjoiMHgzNDNFN0M5Q2Q0RGMxODZFNWM5NDk0NkY2MWRFY0M1RDRmRmQxMWRlIn0",
-    "payload": "eyJkb21haW4iOiJjYXN0aWZ5LXNpeC52ZXJjZWwuYXBwIn0",
-    "signature": "fh1bKiU3DeK1ZjlG+0/v1vBBabEtNZQnjqLVFBvXHzwdLwbN/RDTgy0DMYMv40jfpQAFUvCp6xIdQyM0kc5uMhw="
   }
 }
