@@ -1,9 +1,14 @@
 {
-    "name": "Castify",
-    "version": "1",
-    "homeUrl": "https://velvet-tubal-sandie.ngrok-free.dev",
-    "iconUrl": "https://raw.githubusercontent.com/farcaster-samples/mini-app-starter/main/public/images/icon-1024x1024.png",
-    "description": "Turn videos into shareable Farcaster casts in one click.",
-    "primaryCategory": "utility",
-    "tags": ["video", "casting", "media", "web3"]
-  }
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEwNzgzMTUsInR5cGUiOiJhdXRoIiwia2V5IjoiMHgzNDNFN0M5Q2Q0RGMxODZFNWM5NDk0NjY2MWRFY0M1RDRmRmQxMWRlIn0",
+    "payload": "eyJkb21haW4iOiJjYXN0aWZ5LXNpeC52ZXJjZWwuYXBwIn0",
+    "signature": "fh1bKiU3DeK1ZjlG+0/v1vBBabEtNZQnjqLVFBvXHzwdLwbN/RDTgy0DMYMv40jfpQAFUvCp6xIdQyM0kc5uMhw="
+  },
+  "name": "Castify",
+  "version": "1",
+  "homeUrl": "https://castify-six.vercel.app",
+  "iconUrl": "https://raw.githubusercontent.com/farcaster-samples/mini-app-starter/main/public/images/icon-1024x1024.png",
+  "description": "Turn videos into shareable Farcaster casts in one click.",
+  "primaryCategory": "utility",
+  "tags": ["video", "casting", "media", "web3"]
+}
