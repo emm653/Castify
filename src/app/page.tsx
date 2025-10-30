@@ -14,16 +14,37 @@ export default function CastifyApp() {
 
   // Function to handle the form submission
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!videoUrl) {
-      setError('Please enter a video URL.');
-      return;
+  e.preventDefault();
+  if (!videoUrl) {
+    setError("Please enter a video URL.");
+    return;
+  }
+
+  setLoading(true);
+  setError("");
+  setSuccess("");
+
+  try {
+    const response = await fetch("/api/cast", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ videoUrl }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to cast");
     }
 
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
+    setSuccess("✅ Cast posted! Check Warpcast.");
+    setVideoUrl("");
+  } catch (err: any) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
     try {
       // --- FIX APPLIED HERE: Using the full HTTPS URL from .env.local ---
       const apiUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/generate-cast`;
