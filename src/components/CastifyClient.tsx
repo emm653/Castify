@@ -1,12 +1,13 @@
 // src/components/CastifyClient.tsx
 
-'use client'; // REQUIRED for interactive components (useState, handleSubmit, sdk.actions)
+'use client'; // REQUIRED for hooks and browser APIs
 
 import { useState } from 'react';
 import { sdk } from '@farcaster/miniapp-sdk'; // The Farcaster SDK
 import React from 'react'; // Necessary for React.FormEvent type
 
-export default function CastifyClient() { // Renamed the function here
+export default function CastifyClient() {
+    // --- STATE AND HOOKS ---
     const [videoUrl, setVideoUrl] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -26,9 +27,9 @@ export default function CastifyClient() { // Renamed the function here
 
         try {
             // --- FINAL API CALL LOGIC ---
-            // NOTE: process.env.NEXT_PUBLIC_BASE_URL is replaced with NEXT_PUBLIC_URL 
-            // as this is the standard naming convention used by the Farcaster starter kit
-            const apiUrl = `${process.env.NEXT_PUBLIC_URL}/api/generate-cast`;
+            // CRITICAL FIX: Changed from NEXT_PUBLIC_URL to NEXT_PUBLIC_BASE_URL 
+            // to match your Vercel environment variable name.
+            const apiUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/generate-cast`;
 
             const response = await fetch(apiUrl, {
                 method: 'POST',
@@ -39,7 +40,7 @@ export default function CastifyClient() { // Renamed the function here
             const data = await response.json();
 
             if (!response.ok || data.error) {
-                // Displays the custom error message returned by the server (e.g., "Image data blocked")
+                // Displays the custom error message returned by the server 
                 throw new Error(data.error || 'Unknown error occurred.');
             }
 
