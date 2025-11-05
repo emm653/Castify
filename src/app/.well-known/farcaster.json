@@ -10,10 +10,10 @@
     "iconUrl": "https://castify-six.vercel.app/icon.png",
     "homeUrl": "https://castify-six.vercel.app",
     "imageUrl": "https://castify-six.vercel.app/image.png",
-    "buttonTitle": "Launch Castify", // Simplified this field
+    "buttonTitle": "Launch Castify", 
     "splashImageUrl": "https://castify-six.vercel.app/icon.png",
     "splashBackgroundColor": "#1E1E1E",
-    "webhookUrl": "https://castify-six.vercel.app/api/webhook", // Only needed if using notifications
+    "webhookUrl": "https://castify-six.vercel.app/api/webhook",
     "subtitle": "Video to Cast Converter",
     "description": "Instantly transforms any video link into a viral, shareable Farcaster Cast, saving creators time and eliminating embed issues.",
     "primaryCategory": "utility",
