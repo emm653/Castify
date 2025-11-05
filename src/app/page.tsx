@@ -1,31 +1,25 @@
 import type { Metadata } from 'next';
 import CastifyClient from '../components/CastifyClient'; 
 
-// --- METADATA (CRITICAL FIX: Removing redundant/conflicting Open Graph tags) ---
+// --- METADATA (Final simplified attempt to force Farcaster embed) ---
 export const metadata: Metadata = {
     title: 'Castify - Video to Cast Converter',
     description: 'Instantly turn any video link into a shareable Farcaster cast.',
     
-    // 1. REMOVED: The entire 'openGraph' block is removed to avoid conflict.
+    // 1. STANDARD SEO
+    // These generic tags are necessary for search engine display
+    // but don't define the Farcaster Mini App action.
     
     // 2. CRITICAL FIX: Farcaster-specific Meta Tags
-    // This tells Farcaster exactly how to render the app when shared.
+    // We are simplifying the JSON payload used in the 'other' property.
     other: {
-        // fc:miniapp and fc:frame are the keys Farcaster looks for
-        // The content needs to be stringified JSON describing the embed action.
-        'fc:miniapp': JSON.stringify({
-            version: '1',
-            imageUrl: 'https://castify-six.vercel.app/image.png',
-            button: {
-                title: 'Launch Castify',
-                action: {
-                    type: 'launch_miniapp',
-                    url: 'https://castify-six.vercel.app',
-                    name: 'Castify'
-                }
-            }
-        }),
-        'fc:frame': 'vNext', // Compatibility tag
+        // Use a simpler, non-stringified payload structure for compatibility
+        'fc:frame': 'vNext', 
+        'fc:miniapp:version': '1',
+        'fc:miniapp:image': 'https://castify-six.vercel.app/image.png',
+        'fc:miniapp:button:1': 'Launch Castify',
+        'fc:miniapp:button:1:action:type': 'launch_miniapp',
+        'fc:miniapp:button:1:action:url': 'https://castify-six.vercel.app',
     }
 };
 // -----------------------------------------------------------------
