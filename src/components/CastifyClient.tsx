@@ -10,7 +10,7 @@ export default function CastifyClient() {
     const [videoUrl, setVideoUrl] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
+    const [castHash, setCastHash] = useState<string | null>(null); // Store hash for link/button
 
     // CRITICAL: SDK Ready Fix (from earlier step)
     useEffect(() => {
@@ -24,6 +24,24 @@ export default function CastifyClient() {
         };
         initializeSdk();
     }, []); 
+    
+    // Helper function to copy the ad message to clipboard
+    const copyAdMessage = () => {
+        // Use the environment variable correctly. We'll rely on the global success/error state for feedback.
+        const adMessage = `I just used Castify to post this video! It makes video embeds instant and clean. Try Castify now: ${process.env.NEXT_PUBLIC_BASE_URL} #Castify #FarcasterDev`;
+        try {
+            // Use execCommand for broader browser compatibility in iframe environments
+            const textArea = document.createElement("textarea");
+            textArea.value = adMessage;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+        } catch (err) {
+            console.error("Copy failed:", err);
+        }
+    };
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -34,10 +52,9 @@ export default function CastifyClient() {
 
         setLoading(true);
         setError('');
-        setSuccess('');
+        setCastHash(null); // Clear previous hash
 
         try {
-            // Use the correct environment variable name
             const apiUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/generate-cast`;
 
             const response = await fetch(apiUrl, {
@@ -48,37 +65,37 @@ export default function CastifyClient() {
 
             const data = await response.json();
 
-            // --- NEW LOGIC: CHECK FOR SUCCESS MESSAGE ---
             if (!response.ok || data.error || !data.success) {
-                 // The server will return the error property directly
                 throw new Error(data.error || 'Unknown server publishing error.');
             }
 
             // SUCCESS: Server has published the cast directly. 
-            // We notify the user and optionally show the cast hash.
-            const castHash = data.castHash || 'Unknown';
-            const castMessage = `Cast successfully published! Click here to view and share it!`;
-
-            // Display success status to the user
-            setSuccess(castMessage);
+            const newCastHash = data.castHash || null;
+            
+            setCastHash(newCastHash);
             setVideoUrl(''); 
             
-            // --- ACTION: OPEN NEW TAB TO THE CAST ---
-            if (castHash && castHash !== 'Unknown') {
-                 // Constructs the URL to view the cast on the Warpcast web client
-                 const castLink = `https://warpcast.com/~/casts/${castHash}`;
-                 // This opens the published cast in a new tab for easy sharing
+            // Immediately copy ad message to clipboard
+            copyAdMessage();
+            
+            // Optional: Auto-open for desktop for good UX, but mobile will rely on the button
+            if (window.innerWidth > 768 && newCastHash) {
+                 const castLink = `https://warpcast.com/~/casts/${newCastHash}`;
                  window.open(castLink, '_blank'); 
             }
 
         } catch (err: any) {
             console.error("Client Submission Error:", err.message);
-            // Display the specific error message returned from the server
             setError(`Error publishing cast: ${err.message}`);
         } finally {
             setLoading(false);
         }
     };
+    
+    // Helper to generate the cast link for the button
+    const getCastLink = () => {
+        return `https://warpcast.com/~/casts/${castHash}`;
+    }
 
     // The UI rendered to the user
     return (
@@ -119,7 +136,24 @@ export default function CastifyClient() {
 
             {/* Status Messages */}
             {error && <p className="mt-4 text-sm text-red-600 font-medium">⚠️ {error}</p>}
-            {success && <p className="mt-4 text-sm text-green-600 font-medium">✅ {success}</p>}
+            
+            {/* NEW SUCCESS/LINK BUTTON LOGIC */}
+            {castHash && (
+                <div className="mt-4 p-4 bg-green-100 border border-green-300 rounded-lg shadow-inner">
+                    <p className="text-green-700 font-semibold mb-3">✅ Cast successfully published!</p>
+                    <a 
+                        href={getCastLink()} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="block w-full text-center py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition duration-150 shadow-md"
+                    >
+                        View & Share Your New Cast
+                    </a>
+                    <p className="text-green-700 text-sm mt-3">
+                        Ad message copied! Paste it in the cast to promote Castify.
+                    </p>
+                </div>
+            )}
         </div>
     );
 }
