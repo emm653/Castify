@@ -1,19 +1,30 @@
 // src/components/CastifyClient.tsx
 
-'use client'; // REQUIRED for hooks and browser APIs
+'use client'; 
 
-import { useState } from 'react';
-import { sdk } from '@farcaster/miniapp-sdk'; // The Farcaster SDK
-import React from 'react'; // Necessary for React.FormEvent type
+import { useState, useEffect } from 'react';
+import { sdk } from '@farcaster/miniapp-sdk'; 
+import React from 'react'; 
 
 export default function CastifyClient() {
-    // --- STATE AND HOOKS ---
     const [videoUrl, setVideoUrl] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    // Function to handle the form submission
+    // CRITICAL: SDK Ready Fix (from earlier step)
+    useEffect(() => {
+        const initializeSdk = async () => {
+            try {
+                await sdk.actions.ready();
+                console.log("Farcaster SDK is ready.");
+            } catch (e) {
+                console.error("Farcaster SDK initialization failed:", e);
+            }
+        };
+        initializeSdk();
+    }, []); 
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!videoUrl) {
@@ -26,9 +37,7 @@ export default function CastifyClient() {
         setSuccess('');
 
         try {
-            // --- FINAL API CALL LOGIC ---
-            // CRITICAL FIX: Changed from NEXT_PUBLIC_URL to NEXT_PUBLIC_BASE_URL 
-            // to match your Vercel environment variable name.
+            // Use the correct environment variable name
             const apiUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/generate-cast`;
 
             const response = await fetch(apiUrl, {
@@ -39,24 +48,25 @@ export default function CastifyClient() {
 
             const data = await response.json();
 
-            if (!response.ok || data.error) {
-                // Displays the custom error message returned by the server 
-                throw new Error(data.error || 'Unknown error occurred.');
+            // --- NEW LOGIC: CHECK FOR SUCCESS MESSAGE ---
+            if (!response.ok || data.error || !data.success) {
+                 // The server will return the error property directly
+                throw new Error(data.error || 'Unknown server publishing error.');
             }
 
-            // 2. SUCCESS: Use the Farcaster SDK to open the Cast Composer
-            await sdk.actions.composeCast({
-                text: data.payload.text,
-                embeds: data.payload.embeds,
-            });
+            // SUCCESS: Server has published the cast directly. 
+            // We notify the user and optionally show the cast hash.
+            const castHash = data.castHash || 'Unknown';
+            const castMessage = `Cast successfully published! Hash: ${castHash.substring(0, 8)}...`;
 
-            setSuccess('Cast composer opened successfully! Check your Farcaster client.');
-            setVideoUrl(''); // Clear the input field
+            // Display success status to the user
+            setSuccess(castMessage);
+            setVideoUrl(''); 
 
         } catch (err: any) {
-            // Catch network errors and errors returned by the API
-            console.error("Client Error:", err.message);
-            setError(`Error: ${err.message}`);
+            console.error("Client Submission Error:", err.message);
+            // Display the specific error message returned from the server
+            setError(`Error publishing cast: ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -95,7 +105,7 @@ export default function CastifyClient() {
                     className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition duration-150 shadow-md"
                     disabled={loading}
                 >
-                    {loading ? 'Processing...' : 'Generate & Cast Now'}
+                    {loading ? 'Publishing Cast...' : 'Generate & Publish Now'}
                 </button>
             </form>
 
