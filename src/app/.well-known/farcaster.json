@@ -1,32 +1,30 @@
 {
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEwNzgzMTUsInR5cGUiOiJhdXRoIiwia2V5IjoiMHgzNDNFN0M5Q2Q0RGMxODZFNWM5NDk0NkY2MWRFY0M1RDRmRmQxMWRlIn0",
+    "payload": "eyJkb21haW4iOiJjYXN0aWZ5LXNpeC52ZXJjZWwuYXBwIn0",
+    "signature": "fh1bKiU3DeK1ZjlG+0/v1vBBabEtNZQnjqLVFBvXHzwdLwbN/RDTgy0DMYMv40jfpQAFUvCp6xIdQyM0kc5uMhw="
+  },
+  "frame": {
+    "name": "Castify",
     "version": "1",
-    "miniapp": {
-        "version": "1",
-        "name": "Castify",
-        "iconUrl": "https://castify-six.vercel.app/icon.png",
-        "homeUrl": "https://castify-six.vercel.app",
-        "splashImageUrl": "https://castify-six.vercel.app/icon.png",
-        "splashBackgroundColor": "#1E1E1E",
-        "subtitle": "Video to Cast Converter",
-        "description": "Instantly transforms any video link into a viral, shareable Farcaster Cast, saving creators time and eliminating embed issues.",
-        "primaryCategory": "utility",
-        "tags": [
-            "cast",
-            "video",
-            "sharing",
-            "utility",
-            "embed"
-        ],
-        "developer": {
-            "name": "Your Farcaster Username",
-            "url": "https://warpcast.com/your-username"
-        },
-        "webhookUrl": "https://castify-six.vercel.app/api/webhook",
-        "tagline": "Easiest way to share videos."
-    },
-    "accountAssociation": {
-        "header": "eyJmaWQiOjEwNzgzMTUsInR5cGUiOiJhdXRoIiwia2V5IjoiMHgzNDNFN0M5Q2Q0RGMxODZFNWM5NDk0NkY2MWRFY0M1RDRmRmQxMWRlIn0",
-        "payload": "eyJkb21haW4iOiJjYXN0aWZ5LXNpeC52ZXJjZWwuYXBwIn0",
-        "signature": "fh1bKiU3DeK1ZjlG+0/v1vBBabEtNZQnjqLVFBvXHzwdLwbN/RDTgy0DMYMv40jfpQAFUvCp6xIdQyM0kc5uMhw="
-    }
+    "iconUrl": "https://castify-six.vercel.app/icon.png",
+    "homeUrl": "https://castify-six.vercel.app",
+    "imageUrl": "https://castify-six.vercel.app/image.png",
+    "buttonTitle": "Launch Castify", // Simplified this field
+    "splashImageUrl": "https://castify-six.vercel.app/icon.png",
+    "splashBackgroundColor": "#1E1E1E",
+    "webhookUrl": "https://castify-six.vercel.app/api/webhook", // Only needed if using notifications
+    "subtitle": "Video to Cast Converter",
+    "description": "Instantly transforms any video link into a viral, shareable Farcaster Cast, saving creators time and eliminating embed issues.",
+    "primaryCategory": "utility",
+    "tags": [
+      "cast",
+      "video",
+      "sharing",
+      "utility",
+      "embed"
+    ],
+    "heroImageUrl": "https://castify-six.vercel.app/image.png",
+    "tagline": "Easiest way to share videos."
+  }
 }
