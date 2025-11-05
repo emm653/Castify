@@ -57,11 +57,19 @@ export default function CastifyClient() {
             // SUCCESS: Server has published the cast directly. 
             // We notify the user and optionally show the cast hash.
             const castHash = data.castHash || 'Unknown';
-            const castMessage = `Cast successfully published! Hash: ${castHash.substring(0, 8)}...`;
+            const castMessage = `Cast successfully published! Click here to view and share it!`;
 
             // Display success status to the user
             setSuccess(castMessage);
             setVideoUrl(''); 
+            
+            // --- ACTION: OPEN NEW TAB TO THE CAST ---
+            if (castHash && castHash !== 'Unknown') {
+                 // Constructs the URL to view the cast on the Warpcast web client
+                 const castLink = `https://warpcast.com/~/casts/${castHash}`;
+                 // This opens the published cast in a new tab for easy sharing
+                 window.open(castLink, '_blank'); 
+            }
 
         } catch (err: any) {
             console.error("Client Submission Error:", err.message);
