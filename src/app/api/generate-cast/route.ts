@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     // 3. Scrape metadata using Open Graph tags
     const videoTitle =
-      $('meta[property="og:title"]').attr("content") || "Watch this awesome video!";
+      $('meta[property="og:title"]').attr("content") || "Watch this video!";
       
     let videoImage = $('meta[property="og:image"]').attr("content");
     
@@ -49,12 +49,16 @@ export async function POST(request: NextRequest) {
 
     // Handle case where og:image is missing or blocked (still proceed with text/embed)
     if (!videoImage) {
-        console.warn(`Warning: Could not find og:image for URL: ${videoUrl}`);
+      // Use the stronger error response from the previous version if image is missing
+      return NextResponse.json(
+        { error: "Image blocked or not found. Try a different link." },
+        { status: 422 }
+      );
     }
 
     // 4. Construct the Payload for Farcaster SDK
-    // SIMPLIFIED TEXT: Rely on the embed for the link, making the text cleaner
-    const castText = `🎬 ${videoTitle} #Castify`; // Changed this line
+    // RESTORED TEXT: Includes the direct URL and is formatted to maximize robustness.
+    const castText = `🎬 ${videoTitle}\n\n${videoUrl}\n\n#Castify`;
     
     // Embed the original video URL for the Farcaster client to display the rich card.
     const embeds: { url: string }[] = [{ url: videoUrl }];
@@ -73,13 +77,13 @@ export async function POST(request: NextRequest) {
     // 5. Return the response with the required 'payload' key
     return NextResponse.json({
       success: true,
-      payload, // <--- THIS MATCHES client.data.payload
+      payload, // <--- This structure must be maintained for the client.
     }, { status: 200 });
 
   } catch (error: any) {
-    // --- IMPROVED ERROR HANDLING ---
+    // --- RESTORED ERROR HANDLING ---
     
-    let message = "An unexpected server error occurred.";
+    let message = "Unexpected error";
     let status = 500;
 
     if (axios.isAxiosError(error)) {
@@ -88,12 +92,14 @@ export async function POST(request: NextRequest) {
             status = 504; 
         } else if (error.response) {
             status = error.response.status;
-            message = `Error ${status}: Could not fetch metadata from URL.`;
+            if (status === 403) message = "Access denied (403)";
+            else if (status === 404) message = "URL not found (404)";
+            else message = `HTTP error ${status}`;
         } else {
              message = `Network error connecting to external service.`;
         }
     } else if (error instanceof SyntaxError) {
-      message = "Invalid data format sent from client.";
+      message = "Invalid JSON sent";
       status = 400;
     } else if (error.message) {
       message = error.message;
