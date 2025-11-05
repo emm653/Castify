@@ -76,7 +76,7 @@
     "viem": "^2.38.3",
     "wagmi": "^2.14.12",
     "zod": "^3.24.2",
-    "@pigment-css/react": "0.0.30"
+    "@pigment-css/react": "^0.0.30"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.8",
