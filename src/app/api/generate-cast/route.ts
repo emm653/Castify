@@ -53,7 +53,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Construct the Payload for Farcaster SDK
-    const castText = `🎬 ${videoTitle}\n\n${videoUrl}\n\n#Castify`;
+    // SIMPLIFIED TEXT: Rely on the embed for the link, making the text cleaner
+    const castText = `🎬 ${videoTitle} #Castify`; // Changed this line
     
     // Embed the original video URL for the Farcaster client to display the rich card.
     const embeds: { url: string }[] = [{ url: videoUrl }];
