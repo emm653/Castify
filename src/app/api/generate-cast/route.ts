@@ -1,113 +1,91 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 import * as cheerio from "cheerio";
+// We need the Neynar Node SDK to publish the cast directly
+import { NeynarAPIClient, Configuration } from "@neynar/nodejs-sdk";
 
-// Define the expected structure for the Farcaster composeCast action
-interface ComposeCastPayload {
-    text: string;
-    embeds: { url: string }[];
+// --- Initialize Neynar Client ---
+// These MUST be set as environment variables on Vercel
+const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY;
+const SIGNER_UUID = process.env.NEYNAR_SIGNER_UUID;
+
+if (!NEYNAR_API_KEY || !SIGNER_UUID) {
+    console.error("CRITICAL: NEYNAR_API_KEY or SIGNER_UUID is missing in environment variables.");
 }
 
+// Initialize the client if keys are available
+const neynarClient = NEYNAR_API_KEY
+    ? new NeynarAPIClient(new Configuration({ apiKey: NEYNAR_API_KEY }))
+    : null;
+
 export async function POST(request: NextRequest) {
-  let videoUrl = "";
+    let videoUrl = "";
 
-  try {
-    // 1. Parse the incoming JSON body
-    ({ videoUrl } = await request.json());
-
-    if (!videoUrl) {
-      // Return error response without 'payload'
-      return NextResponse.json({ error: "Missing video URL." }, { status: 400 });
+    // 1. Basic Auth and Input Check
+    if (!neynarClient || !SIGNER_UUID) {
+        return NextResponse.json({ error: "Server publishing is not configured. Missing API Key or Signer UUID." }, { status: 500 });
     }
 
-    // 2. Fetch site HTML (using the User-Agent to mimic a standard browser)
-    const response = await axios.get(videoUrl, {
-      // Increased timeout to help with slower external services
-      timeout: 15000, 
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; Farcaster/2.0; +https://www.farcaster.xyz)", 
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-      },
-    });
+    try {
+        ({ videoUrl } = await request.json());
 
-    const html = response.data;
-    const $ = cheerio.load(html);
-
-    // 3. Scrape metadata using Open Graph tags
-    const videoTitle =
-      $('meta[property="og:title"]').attr("content") || "Watch this video!";
-      
-    let videoImage = $('meta[property="og:image"]').attr("content");
-    
-    // Fallback/Link adjustment for relative image URLs
-    if (videoImage && videoImage.startsWith("/")) {
-      const baseUrl = new URL(videoUrl).origin;
-      videoImage = baseUrl + videoImage;
-    }
-
-    // Handle case where og:image is missing or blocked (still proceed with text/embed)
-    if (!videoImage) {
-      // Use the stronger error response from the previous version if image is missing
-      return NextResponse.json(
-        { error: "Image blocked or not found. Try a different link." },
-        { status: 422 }
-      );
-    }
-
-    // 4. Construct the Payload for Farcaster SDK
-    // RESTORED TEXT: Includes the direct URL and is formatted to maximize robustness.
-    const castText = `🎬 ${videoTitle}\n\n${videoUrl}\n\n#Castify`;
-    
-    // Embed the original video URL for the Farcaster client to display the rich card.
-    const embeds: { url: string }[] = [{ url: videoUrl }];
-
-    // Optional: Include the thumbnail image URL as a secondary embed if found.
-    if (videoImage) {
-        embeds.push({ url: videoImage });
-    }
-
-    // --- CRITICAL FIX: STRUCTURE THE RESPONSE FOR THE CLIENT ---
-    const payload: ComposeCastPayload = {
-        text: castText,
-        embeds: embeds
-    };
-
-    // 5. Return the response with the required 'payload' key
-    return NextResponse.json({
-      success: true,
-      payload, // <--- This structure must be maintained for the client.
-    }, { status: 200 });
-
-  } catch (error: any) {
-    // --- RESTORED ERROR HANDLING ---
-    
-    let message = "Unexpected error";
-    let status = 500;
-
-    if (axios.isAxiosError(error)) {
-        if (error.code === 'ECONNABORTED') {
-            message = "Server timed out connecting to the video URL.";
-            status = 504; 
-        } else if (error.response) {
-            status = error.response.status;
-            if (status === 403) message = "Access denied (403)";
-            else if (status === 404) message = "URL not found (404)";
-            else message = `HTTP error ${status}`;
-        } else {
-             message = `Network error connecting to external service.`;
+        if (!videoUrl) {
+            return NextResponse.json({ error: "Missing video URL." }, { status: 400 });
         }
-    } else if (error instanceof SyntaxError) {
-      message = "Invalid JSON sent";
-      status = 400;
-    } else if (error.message) {
-      message = error.message;
-    }
 
-    console.error("Scraper error:", error);
-    
-    // IMPORTANT: Return response WITHOUT 'payload' but WITH 'error'
-    return NextResponse.json({ error: message }, { status });
-  }
+        // 2. Fetch Metadata using Web Scraping (Fallback for thumbnail/title)
+        const response = await axios.get(videoUrl, {
+            timeout: 15000, 
+            headers: {
+                "User-Agent": "Mozilla/5.0 (compatible; Farcaster/2.0; +https://www.farcaster.xyz)", 
+                Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            },
+        });
+
+        const html = response.data;
+        const $ = cheerio.load(html);
+
+        const videoTitle =
+            $('meta[property="og:title"]').attr("content") || "Watch this awesome video!";
+        
+        // Use the original video URL as the primary embed
+        const embeds = [{ url: videoUrl }];
+
+        // 3. Construct Cast Text and Payload
+        const castText = `🎬 ${videoTitle}\n\n[Watch Now](${videoUrl})\n\n#Castify`;
+
+        // 4. Submit the Cast Directly to the Farcaster Hub via Neynar
+        const castResponse = await neynarClient.publishCast({
+            signerUuid: SIGNER_UUID, 
+            text: castText,
+            embeds: embeds,
+            channelId: "Castify", // Optional channel tag
+        });
+
+        // 5. Success Response
+        return NextResponse.json({
+            success: true,
+            message: "Cast published successfully!",
+            castHash: castResponse.cast.hash,
+        }, { status: 200 });
+
+    } catch (error: any) {
+        let message = "Cast submission failed on server.";
+        let status = 500;
+
+        // Enhanced error handling
+        if (axios.isAxiosError(error) && error.response) {
+            message = `API Error: ${error.response.data.message || error.response.statusText}`;
+            status = error.response.status;
+        } else if (error instanceof SyntaxError) {
+            message = "Invalid input data.";
+            status = 400;
+        } else {
+            message = `Signer/Neynar Error: Check Signer UUID or permissions. Details: ${error.message}`;
+            status = 500;
+        }
+
+        console.error("Server-Side Cast Error:", error);
+        return NextResponse.json({ error: message }, { status });
+    }
 }
