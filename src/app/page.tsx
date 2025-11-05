@@ -1,25 +1,32 @@
 import type { Metadata } from 'next';
 import CastifyClient from '../components/CastifyClient'; 
 
-// --- METADATA (Final simplified attempt to force Farcaster embed) ---
+// --- 1. DEFINE THE FC:MINIAPP PAYLOAD OBJECT ---
+const fcMiniappPayload = {
+    version: '1',
+    imageUrl: 'https://castify-six.vercel.app/image.png',
+    button: {
+        title: 'Launch Castify',
+        action: {
+            type: 'launch_miniapp',
+            url: 'https://castify-six.vercel.app',
+            name: 'Castify'
+        }
+    }
+};
+// We use JSON.stringify() ONLY in the context of the metadata export.
+// Next.js often expects this to be a fully qualified string when using the 'other' property.
+
+// --- 2. METADATA EXPORT (Simplest Form) ---
 export const metadata: Metadata = {
     title: 'Castify - Video to Cast Converter',
     description: 'Instantly turn any video link into a shareable Farcaster cast.',
     
-    // 1. STANDARD SEO
-    // These generic tags are necessary for search engine display
-    // but don't define the Farcaster Mini App action.
-    
-    // 2. CRITICAL FIX: Farcaster-specific Meta Tags
-    // We are simplifying the JSON payload used in the 'other' property.
+    // CRITICAL FIX: Use the specific Farcaster property names with the JSON stringified value
+    // We explicitly define the fc:miniapp and fc:frame meta tags here.
     other: {
-        // Use a simpler, non-stringified payload structure for compatibility
+        'fc:miniapp': JSON.stringify(fcMiniappPayload),
         'fc:frame': 'vNext', 
-        'fc:miniapp:version': '1',
-        'fc:miniapp:image': 'https://castify-six.vercel.app/image.png',
-        'fc:miniapp:button:1': 'Launch Castify',
-        'fc:miniapp:button:1:action:type': 'launch_miniapp',
-        'fc:miniapp:button:1:action:url': 'https://castify-six.vercel.app',
     }
 };
 // -----------------------------------------------------------------
