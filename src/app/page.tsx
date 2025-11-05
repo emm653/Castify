@@ -4,7 +4,8 @@ import CastifyClient from '../components/CastifyClient';
 // --- 1. DEFINE THE FC:MINIAPP PAYLOAD OBJECT ---
 const fcMiniappPayload = {
     version: '1',
-    imageUrl: 'https://castify-six.vercel.app/image.png',
+    // CRITICAL FIX: Use a reliable, non-Vercel URL for the image to eliminate local asset failure
+    imageUrl: 'https://placehold.co/1200x630/4C4D9F/ffffff?text=Castify+App',
     button: {
         title: 'Launch Castify',
         action: {
