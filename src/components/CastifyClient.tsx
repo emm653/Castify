@@ -2,49 +2,42 @@
 
 'use client'; 
 
-import React, { useState } from 'react';
+import React, { useState } from 'react'; 
 import { sdk } from '@farcaster/miniapp-sdk'; 
 
-// This component performs the problematic SDK initialization in a build-safe way.
-// NOTE: We rely on the Farcaster client to load the SDK, and let it handle initialization 
-// in the background, rather than using a problematic useEffect hook.
+// Define the interface for the Embed object to resolve the TypeScript error
+interface Embed {
+    url: string;
+}
 
 export default function CastifyClient() {
     const [videoUrl, setVideoUrl] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-    const [fullCastMessage, setFullCastMessage] = useState(''); // Stores the editable text
+    // State to hold the content for the "Copy to Edit" button
+    const [fullEditableMessage, setFullEditableMessage] = useState('');
 
-    // Helper function to copy text to clipboard (required due to iframe limitations)
-    const copyToClipboard = (text: string) => {
+    // NOTE: The conflicting useEffect hook (for sdk.actions.ready()) has been removed 
+    // because the client usually initializes the SDK passively, and this removal guarantees the Vercel build succeeds.
+
+
+    // Helper function to copy the ad message to clipboard
+    const copyEditableMessage = () => {
+        if (!fullEditableMessage) return;
+
         try {
+            // Use execCommand for broader browser compatibility in iframe environments
             const textArea = document.createElement("textarea");
-            textArea.value = text;
+            textArea.value = fullEditableMessage;
             document.body.appendChild(textArea);
             textArea.select();
-            // document.execCommand('copy') is the most reliable method in iframes
-            document.execCommand('copy'); 
+            document.execCommand('copy');
             document.body.removeChild(textArea);
-            return true;
+            setSuccess('✅ Cast published! Editable message copied to clipboard. Paste and tag your channels!');
         } catch (err) {
-            return false;
+            setSuccess('✅ Cast published! (Could not copy message automatically.)');
         }
-    };
-
-    const handleCopyForEditing = () => {
-        if (fullCastMessage) {
-            if (copyToClipboard(fullCastMessage)) {
-                setSuccess('✅ Full message copied to clipboard! Paste into a cast to add tags.');
-            } else {
-                setError('Failed to copy text. Please try manually selecting and copying the message.');
-            }
-        }
-    };
-
-    const getCastLink = (hash: string) => {
-        // Constructs the URL to view the cast on the Warpcast web client
-        return `https://warpcast.com/~/casts/${hash}`;
     };
 
 
@@ -58,10 +51,10 @@ export default function CastifyClient() {
         setLoading(true);
         setError('');
         setSuccess('');
-        setFullCastMessage('');
+        setFullEditableMessage(''); // Clear previous message
 
         try {
-            // CRITICAL: Call the API route for server-side publishing
+            // CRITICAL: Use the correct environment variable name
             const apiUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/generate-cast`;
 
             const response = await fetch(apiUrl, {
@@ -72,30 +65,34 @@ export default function CastifyClient() {
 
             const data = await response.json();
 
-            // --- Server Response Handling ---
+            // --- NEW LOGIC: CHECK FOR SUCCESS MESSAGE ---
             if (!response.ok || data.error || !data.success) {
-                 // Throw the detailed error message returned by the server 
-                 throw new Error(data.error || 'Unknown server publishing error.');
+                 // The server will return the error property directly
+                throw new Error(data.error || 'Unknown server publishing error.');
             }
-
-            // SUCCESS: Server has published the cast directly. 
-            const { castHash, castText, castEmbeds } = data;
+            
+            // --- DATA CAPTURE ---
+            const castHash = data.castHash || 'Unknown';
+            const castText = data.castText;
+            const castEmbeds: Embed[] = data.castEmbeds;
 
             // Set the full message (text + embeds) for the "Copy to Edit" button
-            // Concatenate the text and the embed URL for easy pasting by the user
-            const fullEditableMessage = `${castText}\n\n${castEmbeds.map(e => e.url).join('\n')}`;
-            setFullCastMessage(fullEditableMessage);
-            
+            // CRITICAL FIX: Explicitly type 'e' as Embed to resolve TypeScript build error
+            const fullEditableMessage = `${castText}\n\n${castEmbeds.map((e: Embed) => e.url).join('\n')}`;
+            setFullEditableMessage(fullEditableMessage);
+
             // --- ACTION: Open Published Cast ---
-            if (castHash) {
-                 const castLink = getCastLink(castHash);
-                 // Opens the published cast in a new tab for confirmation/sharing
-                 if (window.innerWidth > 768) {
+            if (castHash && castHash !== 'Unknown') {
+                 const castLink = `https://warpcast.com/~/casts/${castHash}`;
+                 // Check if it's desktop before auto-opening (better UX for mobile)
+                 if (typeof window !== 'undefined' && window.innerWidth > 768) {
                     window.open(castLink, '_blank'); 
                  }
+                 setSuccess(`✅ Cast successfully published! Your cast hash: ${castHash}.`);
+            } else {
+                 setSuccess('✅ Cast successfully published! (Hash unknown, please check your profile.)');
             }
             
-            setSuccess('✅ Cast successfully published! Use the button below to copy the message.');
             setVideoUrl(''); 
 
         } catch (err: any) {
@@ -106,6 +103,11 @@ export default function CastifyClient() {
         }
     };
 
+    // Helper function to generate the Warpcast link from the hash
+    const getCastLink = (hash: string) => `https://warpcast.com/~/casts/${hash}`;
+
+
+    // The UI rendered to the user
     return (
         <div className="p-8 max-w-lg mx-auto bg-gray-50 min-h-screen">
             <h1 className="text-3xl font-extrabold mb-2 text-indigo-700">🎬 Castify</h1>
@@ -144,32 +146,34 @@ export default function CastifyClient() {
 
             {/* Status Messages */}
             {error && <p className="mt-4 text-sm text-red-600 font-medium">⚠️ {error}</p>}
-            {success && <p className="mt-4 text-sm text-green-600 font-medium">✅ {success}</p>}
-
-            {/* --- Copy for Editing / Mobile View Fallback --- */}
-            {fullCastMessage && (
-                <div className="mt-4 space-y-3 p-4 bg-yellow-50 border border-yellow-300 rounded-lg shadow-inner">
-                    <p className="text-sm font-semibold text-gray-700">
-                        Need tags? Copy the message below to edit, tag channels, and share!
+            
+            {/* SUCCESS INTERFACE */}
+            {fullEditableMessage && (
+                <div className="mt-4 p-4 bg-green-100 border border-green-300 rounded-xl shadow-lg space-y-3">
+                    <p className="text-sm text-green-800 font-semibold">
+                         ✅ Cast published successfully!
                     </p>
-                    
-                    {/* The Copy Button */}
-                    <button
-                        onClick={handleCopyForEditing}
-                        className="w-full text-center py-2 bg-yellow-500 text-white font-bold rounded-lg hover:bg-yellow-600 transition duration-150 shadow-md"
-                    >
-                        Copy Text for Editing
-                    </button>
 
-                    {/* The View Cast Button (Mobile Fallback) */}
-                    <a 
-                        href={fullCastMessage.includes('warpcast.com/~/casts/') ? fullCastMessage.split('\n').find(line => line.includes('warpcast.com/~/casts/')) : getCastLink(JSON.parse(JSON.stringify(window)).castHash)}
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="block w-full text-center py-2 bg-indigo-500 text-white font-bold rounded-lg hover:bg-indigo-600 transition duration-150 shadow-md"
+                    {/* COPY BUTTON */}
+                    <button
+                        onClick={copyEditableMessage}
+                        className="w-full py-3 bg-yellow-500 text-gray-900 font-bold rounded-lg hover:bg-yellow-600 transition duration-150 shadow-md"
                     >
-                        View Published Cast
-                    </a>
+                        Copy Text for Editing (Add Tags!)
+                    </button>
+                    
+                    {/* VIEW CAST BUTTON (Mobile Fallback) */}
+                    {/* This link relies on the success message being set with the hash */}
+                    {success.includes('hash:') && (
+                        <a 
+                            href={getCastLink(success.split('hash: ')[1].split('.')[0])} // Extract hash
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="block w-full text-center py-2 bg-indigo-500 text-white font-semibold rounded-lg hover:bg-indigo-600 transition duration-150"
+                        >
+                            View Published Cast
+                        </a>
+                    )}
                 </div>
             )}
         </div>
