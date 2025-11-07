@@ -10,7 +10,6 @@ interface CastResult {
     castEmbeds: { url: string }[];
 }
 
-// --- ENVIRONMENT VARIABLE CHECK AND CLIENT INITIALIZATION ---
 // This defensive check resolves the Vercel/TypeScript error
 const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY;
 const NEYNAR_SIGNER_UUID = process.env.NEYNAR_SIGNER_UUID;
