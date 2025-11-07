@@ -1,18 +1,18 @@
-// src/components/CastifyClient.tsx
-
-'use client'; 
-
 import { useState, useEffect } from 'react';
 import { sdk } from '@farcaster/miniapp-sdk'; 
 import React from 'react'; 
 
 export default function CastifyClient() {
+    // --- STATE ---
     const [videoUrl, setVideoUrl] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [castHash, setCastHash] = useState<string | null>(null); // Store hash for link/button
+    const [castHash, setCastHash] = useState<string | null>(null);
+    // State to store the text and URL received from the server for the Copy feature
+    const [copiedContent, setCopiedContent] = useState({ text: '', url: '' });
 
-    // CRITICAL: SDK Ready Fix (from earlier step)
+
+    // CRITICAL: SDK Ready Fix 
     useEffect(() => {
         const initializeSdk = async () => {
             try {
@@ -23,22 +23,25 @@ export default function CastifyClient() {
             }
         };
         initializeSdk();
+        // This useEffect does not need cleanup as the SDK only needs to be ready once.
     }, []); 
     
-    // Helper function to copy the ad message to clipboard
-    const copyAdMessage = () => {
-        // Use the environment variable correctly. We'll rely on the global success/error state for feedback.
-        const adMessage = `I just used Castify to post this video! It makes video embeds instant and clean. Try Castify now: ${process.env.NEXT_PUBLIC_BASE_URL} #Castify #FarcasterDev`;
+    // Helper function to copy text to clipboard
+    const copyTextToClipboard = (text: string) => {
         try {
-            // Use execCommand for broader browser compatibility in iframe environments
+            // Use execCommand for broader compatibility in iframe environments
             const textArea = document.createElement("textarea");
-            textArea.value = adMessage;
+            textArea.value = text;
             document.body.appendChild(textArea);
             textArea.select();
             document.execCommand('copy');
             document.body.removeChild(textArea);
+            
+            // Show a quick success alert instead of changing the main box
+            alert('Cast text and URL copied to clipboard! Paste it into a new cast to edit and add tags.');
         } catch (err) {
-            console.error("Copy failed:", err);
+            // Fallback for environments that restrict copy
+            alert('Could not copy automatically. Please manually copy the text from the success box.');
         }
     };
 
@@ -52,9 +55,10 @@ export default function CastifyClient() {
 
         setLoading(true);
         setError('');
-        setCastHash(null); // Clear previous hash
+        setCastHash(null); // Reset previous success
 
         try {
+            // NOTE: Using NEXT_PUBLIC_BASE_URL as per your Vercel configuration
             const apiUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/generate-cast`;
 
             const response = await fetch(apiUrl, {
@@ -66,21 +70,24 @@ export default function CastifyClient() {
             const data = await response.json();
 
             if (!response.ok || data.error || !data.success) {
+                // Throw the specific error message received from the server
                 throw new Error(data.error || 'Unknown server publishing error.');
             }
+            
+            // SUCCESS: Server has published the cast directly.
+            setCastHash(data.castHash); 
+            
+            // Store the content for the Copy feature
+            setCopiedContent({ 
+                text: data.castText, 
+                // data.castEmbeds[0]?.url contains the original video URL
+                url: data.castEmbeds[0]?.url || videoUrl 
+            });
 
-            // SUCCESS: Server has published the cast directly. 
-            const newCastHash = data.castHash || null;
+            const castLink = `https://warpcast.com/~/casts/${data.castHash}`;
             
-            setCastHash(newCastHash);
-            setVideoUrl(''); 
-            
-            // Immediately copy ad message to clipboard
-            copyAdMessage();
-            
-            // Optional: Auto-open for desktop for good UX, but mobile will rely on the button
-            if (window.innerWidth > 768 && newCastHash) {
-                 const castLink = `https://warpcast.com/~/casts/${newCastHash}`;
+            // Open the published cast in a new tab for desktop users
+            if (window.innerWidth > 768) { 
                  window.open(castLink, '_blank'); 
             }
 
@@ -91,11 +98,16 @@ export default function CastifyClient() {
             setLoading(false);
         }
     };
-    
-    // Helper to generate the cast link for the button
+
+    // Helper to construct the full link for the success button
     const getCastLink = () => {
         return `https://warpcast.com/~/casts/${castHash}`;
-    }
+    };
+
+    // The logic to prepare the full, editable message to copy: TEXT + URL + #TAG
+    // This is the message that goes onto the user's clipboard.
+    const fullEditableMessage = `${copiedContent.text}\n${copiedContent.url}\n\n#Castify`;
+
 
     // The UI rendered to the user
     return (
@@ -137,10 +149,12 @@ export default function CastifyClient() {
             {/* Status Messages */}
             {error && <p className="mt-4 text-sm text-red-600 font-medium">⚠️ {error}</p>}
             
-            {/* NEW SUCCESS/LINK BUTTON LOGIC */}
+            {/* SUCCESS BOX: Displays the link and the new copy button */}
             {castHash && (
                 <div className="mt-4 p-4 bg-green-100 border border-green-300 rounded-lg shadow-inner">
-                    <p className="text-green-700 font-semibold mb-3">✅ Cast successfully published!</p>
+                    <p className="text-green-800 font-semibold mb-3">✅ Cast Successfully Published!</p>
+                    
+                    {/* BUTTON 1: View Published Cast (for mobile/manual desktop) */}
                     <a 
                         href={getCastLink()} 
                         target="_blank" 
@@ -149,9 +163,18 @@ export default function CastifyClient() {
                     >
                         View & Share Your New Cast
                     </a>
-                    <p className="text-green-700 text-sm mt-3">
-                        Ad message copied! Paste it in the cast to promote Castify.
-                    </p>
+                    
+                    <div className="mt-4 border-t border-green-300 pt-3">
+                        <p className="text-sm text-green-700 font-medium mb-2">Want to add tags or context?</p>
+                        
+                        {/* BUTTON 2: Copy Text for Editing */}
+                        <button
+                            onClick={() => copyTextToClipboard(fullEditableMessage)}
+                            className="w-full text-center py-2 bg-yellow-500 text-gray-800 font-semibold rounded-lg hover:bg-yellow-600 transition duration-150 shadow-md"
+                        >
+                            Copy Text for Editing
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
