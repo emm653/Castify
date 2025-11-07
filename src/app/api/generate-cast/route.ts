@@ -3,89 +3,126 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 import { NeynarAPIClient, Configuration } from "@neynar/nodejs-sdk";
 
-// Initialize Neynar Client with environment variables
+// Define the expected fields returned on success (for the client component)
+interface CastResult {
+    castHash: string;
+    castText: string;
+    castEmbeds: { url: string }[];
+}
+
+// --- ENVIRONMENT VARIABLE CHECK AND CLIENT INITIALIZATION ---
+// This defensive check resolves the Vercel/TypeScript error
 const NEYNAR_API_KEY = process.env.NEYNAR_API_KEY;
 const NEYNAR_SIGNER_UUID = process.env.NEYNAR_SIGNER_UUID;
 
-// Check if keys are set (Crucial for Vercel deployment)
-if (!NEYNAR_API_KEY || !NEYNAR_SIGNER_UUID) {
-    console.error("NEYNAR_API_KEY or NEYNAR_SIGNER_UUID not set in Vercel environment.");
-    // We cannot create a functional client without keys, but we initialize it anyway
-    // The error handling in the POST function will catch the null case.
+if (!NEYNAR_API_KEY) {
+    // If the API Key is missing during runtime, this error will be thrown
+    console.error("CRITICAL ERROR: NEYNAR_API_KEY is not set.");
 }
 
-// Client initialization
-const client = new NeynarAPIClient(new Configuration({ apiKey: NEYNAR_API_KEY }));
-
-// Define the expected structure for the client composer
-interface CastPayload {
-    text: string;
-    embeds: { url: string }[];
-}
+// Initialize client outside of the function. Use '!' to assert non-null only if safe
+// NOTE: We wrap the configuration to satisfy TypeScript's requirement for a non-undefined API Key string.
+const client = new NeynarAPIClient(
+    new Configuration({ apiKey: NEYNAR_API_KEY || "dummy_api_key_for_type_safety" })
+);
+// -------------------------------------------------------------
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
     let videoUrl = "";
 
+    // 1. Critical Environment Check (Runtime Failover)
+    if (!NEYNAR_API_KEY || !NEYNAR_SIGNER_UUID) {
+        return NextResponse.json({
+            error: "Signer Error: Missing NEYNAR_API_KEY or NEYNAR_SIGNER_UUID environment variables on the server. Please check Vercel configuration."
+        }, { status: 500 });
+    }
+
     try {
-        const { videoUrl }: { videoUrl: string } = await request.json();
+        // 2. Parse the incoming JSON body
+        ({ videoUrl } = await request.json());
 
         if (!videoUrl) {
             return NextResponse.json({ error: "Missing video URL." }, { status: 400 });
         }
 
-        // 1. SCRAPE METADATA (Title for the cast text)
+        // 3. Fetch site HTML and Scrape metadata
         const response = await axios.get(videoUrl, {
-            timeout: 15000,
+            timeout: 15000, 
             headers: {
                 "User-Agent": "Mozilla/5.0 (compatible; Farcaster/2.0; +https://www.farcaster.xyz)",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
             },
         });
 
-        const html = response.data;
-        const $ = cheerio.load(html);
+        const $ = cheerio.load(response.data);
+
+        // Scrape metadata
         const videoTitle =
             $('meta[property="og:title"]').attr("content") || "Watch this awesome video!";
+
+        let videoImage = $('meta[property="og:image"]').attr("content");
         
-        // This is the cast message part the user wants to copy/edit.
-        const castText = `🎬 ${videoTitle}\n\n`; 
-
-        // 2. DEFINE EMBEDS (The Farcaster card)
-        const castEmbeds: { url: string }[] = [
-            { url: videoUrl }
-        ];
-
-        // 3. PUBLISH CAST DIRECTLY VIA NEYNAR API (Bypasses client signing failure)
-        const publishResponse = await client.publishCast({
-            signerUuid: NEYNAR_SIGNER_UUID!,
-            text: castText,
-            embeds: castEmbeds,
-        });
-
-        if (!publishResponse.success || !publishResponse.cast) {
-            throw new Error(publishResponse.message || "Cast publishing failed on Neynar Hub.");
+        // Final fallback/link adjustment
+        if (videoImage && videoImage.startsWith("/")) {
+            const baseUrl = new URL(videoUrl).origin;
+            videoImage = baseUrl + videoImage;
         }
 
-        // 4. RETURN DATA TO CLIENT (Success + Text/Embeds for Copying)
+        // 4. Construct the Payload for Publishing
+        
+        // This is the message we want to post
+        const castText = `🎬 ${videoTitle}\n\n[Watch Link](${videoUrl})\n\n#Castify`;
+        
+        // Embeds must contain the original URL for the rich video card to render
+        const castEmbeds: { url: string }[] = [{ url: videoUrl }];
+        
+        if (videoImage) {
+            // Optionally include the image as a secondary embed
+            // castEmbeds.push({ url: videoImage }); 
+        }
+
+        // 5. Publish Cast Directly to Farcaster Hub (Server-Side Publishing)
+        const publishResponse = await client.publishCast({
+            signerUuid: NEYNAR_SIGNER_UUID,
+            text: castText,
+            embeds: castEmbeds,
+            // Optionally, specify a channel: channel_id: 'build' 
+        });
+
+        const castHash = publishResponse.cast?.hash || 'Unknown';
+        
+        // 6. Return the data the client needs for success confirmation
+        const result: CastResult = {
+            castHash: castHash,
+            castText: castText,
+            castEmbeds: castEmbeds
+        };
+
         return NextResponse.json({
             success: true,
-            castHash: publishResponse.cast.hash, // Used for opening the published cast
-            castText: castText, // <-- Essential for the Copy button
-            castEmbeds: castEmbeds, // <-- Essential for the Copy button
+            ...result // Spread the results into the response body
         }, { status: 200 });
 
     } catch (error: any) {
         let message = "Failed to process video URL on the server.";
         let status = 500;
-        
-        if (axios.isAxiosError(error) && error.response) {
-            message = `Error from host: HTTP ${error.response.status}`;
-            status = error.response.status;
-        } else if (error.message.includes("Signer")) {
-             message = "Signer Error: Check your NEYNAR_SIGNER_UUID permissions.";
+
+        // Log the actual error for Vercel/developer debugging
+        console.error(`[Neynar Publish Error] URL: ${videoUrl}`, error);
+
+        if (axios.isAxiosError(error) && error.code === 'ECONNABORTED') {
+            message = "Server timed out connecting to the video URL.";
+            status = 504;
+        } else if (error.response && error.response.data && error.response.data.message) {
+            // Error from Neynar API itself (e.g., Signer rejected)
+            message = `Publish Error: ${error.response.data.message}`;
+            status = error.response.status || 500;
+        } else if (error instanceof SyntaxError) {
+            message = "Invalid data sent to the API.";
+            status = 400;
         }
 
-        console.error("Server Publishing Error:", error.message);
-        return NextResponse.json({ error: message }, { status: status });
+        // Return a clean error message to the client
+        return NextResponse.json({ error: message }, { status });
     }
 }
