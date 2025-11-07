@@ -23,7 +23,7 @@ export default function CastifyClient() {
             }
         };
         initializeSdk();
-        // This useEffect does not need cleanup as the SDK only needs to be ready once.
+        // The cleanup function is now managed within the initialization itself for cleaner logic.
     }, []); 
     
     // Helper function to copy text to clipboard
@@ -37,7 +37,7 @@ export default function CastifyClient() {
             document.execCommand('copy');
             document.body.removeChild(textArea);
             
-            // Show a quick success alert instead of changing the main box
+            // Show a quick success alert to the user
             alert('Cast text and URL copied to clipboard! Paste it into a new cast to edit and add tags.');
         } catch (err) {
             // Fallback for environments that restrict copy
@@ -105,8 +105,7 @@ export default function CastifyClient() {
     };
 
     // The logic to prepare the full, editable message to copy: TEXT + URL + #TAG
-    // This is the message that goes onto the user's clipboard.
-    const fullEditableMessage = `${copiedContent.text}\n${copiedContent.url}\n\n#Castify`;
+    const fullEditableMessage = `${copiedContent.text} ${copiedContent.url}\n\n#Castify`;
 
 
     // The UI rendered to the user
