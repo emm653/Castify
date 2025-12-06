@@ -4,7 +4,7 @@
     "payload": "eyJkb21haW4iOiJjYXN0aWZ5LXNpeC52ZXJjZWwuYXBwIn0",
     "signature": "fh1bKiU3DeK1ZjlG+0/v1vBBabEtNZQnjqLVFBvXHzwdLwbN/RDTgy0DMYMv40jfpQAFUvCp6xIdQyM0kc5uMhw="
   },
-  "frame": {
+  "miniapp": {
     "name": "Castify",
     "version": "1",
     "iconUrl": "https://castify-six.vercel.app/icon.png",
